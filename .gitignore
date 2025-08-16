@@ -1,0 +1,34 @@
+# --- Node ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-lock.yaml
+dist/
+build/
+.cache/
+
+# --- Python ---
+.venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# --- Editor/OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Env & secrets ---
+*.env
+*.env.*
+!*.env.example
+todo_app_backend/.env
+todo_app_frontend/.env
+
+# --- Tests/coverage ---
+coverage/
+*.sqlite
