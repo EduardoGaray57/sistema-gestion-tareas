@@ -1,7 +1,7 @@
 import { useState } from "react";
 import api from "../api";
 
-export default function Register({ onRegister }) {
+function Register({ onRegister }) {
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -10,7 +10,11 @@ export default function Register({ onRegister }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const res = await api.post("/auth/register", { username, email, password });
+            const res = await api.post("/auth/register", {
+                username,
+                email,
+                password,
+            });
             localStorage.setItem("token", res.data.token);
             onRegister(res.data.user);
         } catch (err) {
@@ -57,3 +61,5 @@ export default function Register({ onRegister }) {
         </div>
     );
 }
+
+export default Register;

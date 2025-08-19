@@ -1,9 +1,11 @@
-import axios from 'axios';
+// src/api.js
+import axios from "axios";
+
 const api = axios.create({
-    baseURL: "http://localhost:5000"
+    baseURL: "http://localhost:5000", // Ajusta si usas otro puerto
 });
 
-//Interceptor para incluir token
+// Interceptor: agrega el token a cada request si existe
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem("token");
     if (token) {

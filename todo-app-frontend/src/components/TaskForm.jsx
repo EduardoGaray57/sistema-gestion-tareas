@@ -1,123 +1,70 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import { useState } from "react";
+import api from "../api";
 
-const TaskForm = ({ onTaskSaved, taskToEdit, onCancelEdit }) => {
+function TaskForm({ onTaskCreated }) {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [dueDate, setDueDate] = useState("");
-
-    // Rellenar datos si estamos editando
-    useEffect(() => {
-        if (taskToEdit) {
-            setTitle(taskToEdit.title || "");
-            setDescription(taskToEdit.description || "");
-            setDueDate(taskToEdit.due_date || "");
-        } else {
-            setTitle("");
-            setDescription("");
-            setDueDate("");
-        }
-    }, [taskToEdit]);
+    const [error, setError] = useState("");
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        if (!title.trim() || !dueDate) {
-            alert("Por favor, completa al menos el título y la fecha límite.");
-            return;
-        }
-
         try {
-            if (taskToEdit) {
-                // EDITAR
-                await axios.put(`http://localhost:5000/tasks/${taskToEdit.id}`, {
-                    title,
-                    description,
-                    due_date: dueDate,
-                });
-            } else {
-                // CREAR
-                await axios.post("http://localhost:5000/tasks", {
-                    title,
-                    description,
-                    due_date: dueDate,
-                });
-            }
-
-            // Limpiar formulario
+            const res = await api.post("/tasks", {
+                title,
+                description,
+                due_date: dueDate,
+            });
+            onTaskCreated(res.data); // avisamos al padre que hay una nueva tarea
             setTitle("");
             setDescription("");
             setDueDate("");
-
-            // Avisar al padre que se guardó
-            if (onTaskSaved) onTaskSaved();
-
-            // Si estaba editando, cancelar el modo edición
-            if (onCancelEdit) onCancelEdit();
-
         } catch (err) {
-            console.error(err);
+            setError("Error al crear la tarea");
         }
     };
 
     return (
-        <div className="max-w-3xl mx-auto p-6 bg-white shadow-md rounded-lg mb-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">
-                {taskToEdit ? "Editar Tarea" : "Agregar Nueva Tarea"}
-            </h2>
-            <form onSubmit={handleSubmit} className="bg-white shadow-lg rounded-lg p-4 md:p-6 flex flex-col md:flex-row gap-4">
+        <form
+            onSubmit={handleSubmit}
+            className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md w-80 mb-4"
+        >
+            <h3 className="text-lg font-semibold mb-3 dark:text-white">Nueva tarea</h3>
 
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Título</label>
-                    <input
-                        type="text"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        className="flex-1 border rounded px-3 py-2"
-                        placeholder="Escribe el título de la tarea"
-                    />
-                </div>
+            {error && <p className="text-red-500 mb-2">{error}</p>}
 
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
-                    <textarea
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        className="flex-1 border rounded px-3 py-2"
-                        placeholder="Escribe una descripción (opcional)"
-                    />
-                </div>
+            <input
+                type="text"
+                placeholder="Título"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="border w-full p-2 mb-2 rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                required
+            />
 
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Fecha límite</label>
-                    <input
-                        type="date"
-                        value={dueDate}
-                        onChange={(e) => setDueDate(e.target.value)}
-                        className="flex-1 border rounded px-3 py-2"
-                    />
-                </div>
+            <textarea
+                placeholder="Descripción"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="border w-full p-2 mb-2 rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            />
 
-                <div className="flex gap-2">
-                    <button
-                        type="submit"
-                        className="bg-blue-500 hover:bg-blue-600 text-white font-medium px-4 py-2 rounded-md"
-                    >
-                        {taskToEdit ? "Guardar Cambios" : "Guardar Tarea"}
-                    </button>
-                    {taskToEdit && (
-                        <button
-                            type="button"
-                            onClick={onCancelEdit}
-                            className="bg-gray-400 hover:bg-gray-500 text-white font-medium px-4 py-2 rounded-md"
-                        >
-                            Cancelar
-                        </button>
-                    )}
-                </div>
-            </form>
-        </div>
+            <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="border w-full p-2 mb-3 rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                required
+            />
+
+            <button
+                type="submit"
+                className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600"
+            >
+                Crear
+            </button>
+        </form>
     );
-};
+}
 
 export default TaskForm;
