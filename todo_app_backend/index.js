@@ -1,38 +1,21 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
-import pool from "./db.js";
-
-// Importamos las rutas
 import authRoutes from "./routes/auth.js";
 import taskRoutes from "./routes/tasks.js";
+import adminRoutes from "./routes/admin.js";
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
-
 app.use(cors());
 app.use(express.json());
 
-// rutas
-// Logs para verificar que las rutas se cargan
-console.log("🔄 Cargando rutas...");
-
-// Montar rutas
+// Rutas
 app.use("/auth", authRoutes);
-console.log("✅ Rutas /auth registradas");
-
 app.use("/tasks", taskRoutes);
-console.log("✅ Rutas /tasks registradas");
+app.use("/admin", adminRoutes);
 
-app.get("/", (req, res) => {
-    res.send("Servidor funcionando 🚀");
-});
-
-app.listen(PORT, () => {
-    console.log(`Servidor corriendo en puerto ${PORT}`);
-});
 
 // --- ENDPOINTS CRUD ---
 

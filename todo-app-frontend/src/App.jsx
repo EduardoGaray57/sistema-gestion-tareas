@@ -1,3 +1,4 @@
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Login from "./components/Login";
 import Register from "./components/Register";
@@ -5,6 +6,7 @@ import api from "./api";
 import TaskForm from "./components/TaskForm";
 import Dashboard from "./components/Dashboard";
 import Navbar from "./components/Navbar";
+import AdminDashboard from "./AdminDashboard";
 
 function App() {
   const [showRegister, setShowRegister] = useState(false);
