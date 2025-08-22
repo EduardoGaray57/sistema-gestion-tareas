@@ -33,16 +33,19 @@ function App() {
 
   // === Persistencia de sesión ===
   useEffect(() => {
-    try {
-      const savedUser = localStorage.getItem("user");
-      if (savedUser && savedUser !== "undefined") {
+    const savedUser = localStorage.getItem("user");
+    const savedToken = localStorage.getItem("token");
+
+    if (savedUser && savedUser !== "undefined" && savedToken) {
+      try {
         setUser(JSON.parse(savedUser));
+      } catch (err) {
+        console.error("Error parseando user en localStorage:", err);
+        localStorage.removeItem("user"); // limpiamos datos corruptos
       }
-    } catch (err) {
-      console.error("Error parseando user en localStorage:", err);
-      localStorage.removeItem("user"); // limpiar para evitar bucles de error
     }
   }, []);
+
 
   const handleLogin = (userData, token) => {
     localStorage.setItem("token", token);
@@ -59,7 +62,7 @@ function App() {
   const toggleForm = () => setShowRegister(!showRegister);
 
   useEffect(() => {
-    if (user && user.role === "user") fetchTasks();
+    if (user) fetchTasks();
   }, [user]);
 
   const fetchTasks = async () => {
@@ -107,7 +110,7 @@ function App() {
     <Router>
       <div className="min-h-screen">
         <Routes>
-          {/* === Pantalla Login/Register === */}
+          {/* === Login / Register === */}
           {!user && (
             <Route
               path="/"
@@ -131,7 +134,7 @@ function App() {
             />
           )}
 
-          {/* === Vista usuario normal === */}
+          {/* === Vista usuario logeado === */}
           {user && user.role === "user" && (
             <Route
               path="/"
@@ -251,13 +254,13 @@ function App() {
 
           {/* === Vista admin === */}
           {user && user.role === "admin" && (
-            <>
-              <Route path="/admin" element={<AdminDashboard user={user} onLogout={handleLogout} />} />
-              <Route path="/" element={<Navigate to="/admin" />} />
-            </>
+            <Route path="/admin" element={<AdminDashboard user={user} onLogout={handleLogout} />} />
           )}
 
-          {/* Redirección rutas desconocidas */}
+          {/* Redirección automática según rol */}
+          {user && user.role === "admin" && <Route path="/" element={<Navigate to="/admin" />} />}
+
+          {/* Redirección de rutas desconocidas */}
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </div>
