@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import Login from "./components/Login";
 import Register from "./components/Register";
@@ -16,35 +16,50 @@ function App() {
   const [filterDate, setFilterDate] = useState("");
   const [darkMode, setDarkMode] = useState(false);
 
-  // ✅ cargar preferencia de tema al iniciar
+  // === Dark Mode ===
   useEffect(() => {
     const savedTheme = localStorage.getItem("darkMode");
     if (savedTheme === "true") setDarkMode(true);
   }, []);
 
-  // ✅ guardar preferencia cada vez que cambia
   useEffect(() => {
     localStorage.setItem("darkMode", darkMode);
   }, [darkMode]);
 
   useEffect(() => {
-    // aplica/quita la clase globalmente
     const root = document.documentElement;
-    if (darkMode) {
-      root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
-    }
+    darkMode ? root.classList.add("dark") : root.classList.remove("dark");
   }, [darkMode]);
 
-  const handleLogin = (userData) => setUser(userData);
-  const handleRegister = (userData) => setUser(userData);
+  // === Persistencia de sesión ===
+  useEffect(() => {
+    try {
+      const savedUser = localStorage.getItem("user");
+      if (savedUser && savedUser !== "undefined") {
+        setUser(JSON.parse(savedUser));
+      }
+    } catch (err) {
+      console.error("Error parseando user en localStorage:", err);
+      localStorage.removeItem("user"); // limpiar para evitar bucles de error
+    }
+  }, []);
+
+  const handleLogin = (userData, token) => {
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(userData));
+    setUser(userData);
+  };
+
+  const handleRegister = (userData, token) => {
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(userData));
+    setUser(userData);
+  };
+
   const toggleForm = () => setShowRegister(!showRegister);
 
   useEffect(() => {
-    if (user) {
-      fetchTasks();
-    }
+    if (user && user.role === "user") fetchTasks();
   }, [user]);
 
   const fetchTasks = async () => {
@@ -58,6 +73,7 @@ function App() {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
     setUser(null);
     setTasks([]);
   };
@@ -80,144 +96,172 @@ function App() {
     }
   };
 
-  // === Filtro aplicado ===
   const filteredTasks = tasks.filter((task) => {
     if (filter === "completed") return task.completed;
     if (filter === "pending") return !task.completed;
     if (filterDate) return task.due_date?.slice(0, 10) === filterDate;
-    return true; // "all"
+    return true;
   });
 
-  // === Vista con usuario logeado ===
-  if (user) {
-    return (
-      <div className={ "min-h-screen" }>
-        <Navbar
-          user={user}
-          darkMode={darkMode}
-          setDarkMode={setDarkMode}
-          handleLogout={handleLogout}
-        />
-
-        <div className="flex flex-col items-center justify-start min-h-screen bg-gray-50 dark:bg-gray-900 dark:text-white pt-6">
-          <h2 className="text-xl mb-2">Tus tareas</h2>
-
-          <TaskForm onTaskCreated={(newTask) => setTasks([...tasks, newTask])} />
-
-          {/* === Controles de filtro === */}
-          <div className="flex flex-col md:flex-row gap-4 mb-4 items-center">
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  setFilter("all");
-                  setFilterDate("");
-                }}
-                className={`px-3 py-1 rounded ${filter === "all" && !filterDate ? "bg-blue-500 text-white" : "bg-gray-200 dark:bg-gray-700"
-                  }`}
-              >
-                Todas
-              </button>
-              <button
-                onClick={() => {
-                  setFilter("pending");
-                  setFilterDate("");
-                }}
-                className={`px-3 py-1 rounded ${filter === "pending" ? "bg-blue-500 text-white" : "bg-gray-200 dark:bg-gray-700"
-                  }`}
-              >
-                Pendientes
-              </button>
-              <button
-                onClick={() => {
-                  setFilter("completed");
-                  setFilterDate("");
-                }}
-                className={`px-3 py-1 rounded ${filter === "completed" ? "bg-blue-500 text-white" : "bg-gray-200 dark:bg-gray-700"
-                  }`}
-              >
-                Completadas
-              </button>
-            </div>
-
-            {/* Filtro por fecha */}
-            <div>
-              <input
-                type="date"
-                value={filterDate}
-                onChange={(e) => {
-                  setFilterDate(e.target.value);
-                  setFilter("all");
-                }}
-                className="border p-2 rounded dark:bg-gray-700 dark:text-white"
-              />
-              {filterDate && (
-                <button
-                  onClick={() => setFilterDate("")}
-                  className="ml-2 text-sm text-red-500 hover:underline"
-                >
-                  Limpiar fecha
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* === Lista de tareas filtradas === */}
-          <ul className="mb-4 w-80">
-            {filteredTasks.map((task) => (
-              <li
-                key={task.id}
-                className="p-2 border rounded mb-2 flex justify-between items-center bg-white dark:bg-gray-800 dark:border-gray-700"
-              >
-                <span>
-                  {task.title}{" "}
-                  {task.completed ? "✅" : <span className="text-red-500">⏳</span>}
-                </span>
-
-                <div className="flex gap-2">
-                  {!task.completed && (
-                    <button
-                      onClick={() => handleCompleteTask(task.id)}
-                      className="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 text-sm"
-                    >
-                      Completar
-                    </button>
+  return (
+    <Router>
+      <div className="min-h-screen">
+        <Routes>
+          {/* === Pantalla Login/Register === */}
+          {!user && (
+            <Route
+              path="/"
+              element={
+                <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900 dark:text-white">
+                  {showRegister ? (
+                    <Register onRegister={(data) => handleRegister(data.user, data.token)} />
+                  ) : (
+                    <Login onLogin={(data) => handleLogin(data.user, data.token)} />
                   )}
                   <button
-                    onClick={() => handleDeleteTask(task.id)}
-                    className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 text-sm"
+                    onClick={toggleForm}
+                    className="mt-4 text-blue-500 hover:underline"
                   >
-                    Eliminar
+                    {showRegister
+                      ? "¿Ya tienes cuenta? Inicia sesión"
+                      : "¿No tienes cuenta? Regístrate"}
                   </button>
                 </div>
-              </li>
-            ))}
-          </ul>
+              }
+            />
+          )}
 
-          <Dashboard tasks={tasks} />
-        </div>
-      </div>
-    );
-  }
+          {/* === Vista usuario normal === */}
+          {user && user.role === "user" && (
+            <Route
+              path="/"
+              element={
+                <div className="min-h-screen">
+                  <Navbar
+                    user={user}
+                    darkMode={darkMode}
+                    setDarkMode={setDarkMode}
+                    handleLogout={handleLogout}
+                  />
 
-  // === Vista Login/Register ===
-  return (
-    <div className={"min-h-screen"}>
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900 dark:text-white">
-        {showRegister ? (
-          <Register onRegister={handleRegister} />
-        ) : (
-          <Login onLogin={handleLogin} />
-        )}
-        <button
-          onClick={toggleForm}
-          className="mt-4 text-blue-500 hover:underline"
-        >
-          {showRegister
-            ? "¿Ya tienes cuenta? Inicia sesión"
-            : "¿No tienes cuenta? Regístrate"}
-        </button>
+                  <div className="flex flex-col items-center justify-start min-h-screen bg-gray-50 dark:bg-gray-900 dark:text-white pt-6">
+                    <h2 className="text-xl mb-2">Tus tareas</h2>
+                    <TaskForm
+                      onTaskCreated={(newTask) => setTasks([...tasks, newTask])}
+                    />
+
+                    {/* === Controles de filtro === */}
+                    <div className="flex flex-col md:flex-row gap-4 mb-4 items-center">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            setFilter("all");
+                            setFilterDate("");
+                          }}
+                          className={`px-3 py-1 rounded ${filter === "all" && !filterDate
+                            ? "bg-blue-500 text-white"
+                            : "bg-gray-200 dark:bg-gray-700"
+                            }`}
+                        >
+                          Todas
+                        </button>
+                        <button
+                          onClick={() => {
+                            setFilter("pending");
+                            setFilterDate("");
+                          }}
+                          className={`px-3 py-1 rounded ${filter === "pending"
+                            ? "bg-blue-500 text-white"
+                            : "bg-gray-200 dark:bg-gray-700"
+                            }`}
+                        >
+                          Pendientes
+                        </button>
+                        <button
+                          onClick={() => {
+                            setFilter("completed");
+                            setFilterDate("");
+                          }}
+                          className={`px-3 py-1 rounded ${filter === "completed"
+                            ? "bg-blue-500 text-white"
+                            : "bg-gray-200 dark:bg-gray-700"
+                            }`}
+                        >
+                          Completadas
+                        </button>
+                      </div>
+
+                      <div>
+                        <input
+                          type="date"
+                          value={filterDate}
+                          onChange={(e) => {
+                            setFilterDate(e.target.value);
+                            setFilter("all");
+                          }}
+                          className="border p-2 rounded dark:bg-gray-700 dark:text-white"
+                        />
+                        {filterDate && (
+                          <button
+                            onClick={() => setFilterDate("")}
+                            className="ml-2 text-sm text-red-500 hover:underline"
+                          >
+                            Limpiar fecha
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <ul className="mb-4 w-80">
+                      {filteredTasks.map((task) => (
+                        <li
+                          key={task.id}
+                          className="p-2 border rounded mb-2 flex justify-between items-center bg-white dark:bg-gray-800 dark:border-gray-700"
+                        >
+                          <span>
+                            {task.title}{" "}
+                            {task.completed ? "✅" : <span className="text-red-500">⏳</span>}
+                          </span>
+                          <div className="flex gap-2">
+                            {!task.completed && (
+                              <button
+                                onClick={() => handleCompleteTask(task.id)}
+                                className="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 text-sm"
+                              >
+                                Completar
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDeleteTask(task.id)}
+                              className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 text-sm"
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+
+                    <Dashboard tasks={tasks} />
+                  </div>
+                </div>
+              }
+            />
+          )}
+
+          {/* === Vista admin === */}
+          {user && user.role === "admin" && (
+            <>
+              <Route path="/admin" element={<AdminDashboard user={user} onLogout={handleLogout} />} />
+              <Route path="/" element={<Navigate to="/admin" />} />
+            </>
+          )}
+
+          {/* Redirección rutas desconocidas */}
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
       </div>
-    </div>
+    </Router>
   );
 }
 

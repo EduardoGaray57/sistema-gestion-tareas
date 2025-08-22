@@ -9,56 +9,67 @@ function Register({ onRegister }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setError("");
+
         try {
             const res = await api.post("/auth/register", {
                 username,
                 email,
                 password,
             });
-            localStorage.setItem("token", res.data.token);
-            onRegister(res.data.user);
+
+            // CORREGIDO: pasar el objeto completo con user y token
+            if (res.data?.user && res.data?.token) {
+                onRegister(res.data); // Pasar todo res.data que contiene { user, token }
+            } else {
+                setError("Error en el servidor, datos incompletos.");
+            }
         } catch (err) {
+            console.error("Error en registro:", err);
             setError(err.response?.data?.error || "Error al registrarse");
         }
     };
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
-            <form
-                onSubmit={handleSubmit}
-                className="bg-white p-6 rounded-lg shadow-md w-80"
+        <form
+            onSubmit={handleSubmit}
+            className="bg-white dark:bg-gray-800 p-6 rounded shadow-md w-80"
+        >
+            <h2 className="text-lg mb-4">Registro</h2>
+
+            {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
+
+            <input
+                type="text"
+                placeholder="Nombre de usuario"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full mb-3 p-2 border rounded dark:bg-gray-700 dark:text-white"
+            />
+
+            <input
+                type="email"
+                placeholder="Correo"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full mb-3 p-2 border rounded dark:bg-gray-700 dark:text-white"
+            />
+
+            <input
+                type="password"
+                placeholder="Contraseña"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full mb-3 p-2 border rounded dark:bg-gray-700 dark:text-white"
+            />
+
+            <button
+                type="submit"
+                className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600"
             >
-                <h2 className="text-2xl font-bold mb-4">Registrarse</h2>
-                {error && <p className="text-red-500 mb-2">{error}</p>}
-                <input
-                    type="text"
-                    placeholder="Nombre de usuario"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="border w-full p-2 mb-3 rounded"
-                />
-                <input
-                    type="email"
-                    placeholder="Correo"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="border w-full p-2 mb-3 rounded"
-                />
-                <input
-                    type="password"
-                    placeholder="Contraseña"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="border w-full p-2 mb-3 rounded"
-                />
-                <button
-                    type="submit"
-                    className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600"
-                >
-                    Crear Cuenta
-                </button>
-            </form>
-        </div>
+                Registrarse
+            </button>
+        </form>
     );
 }
 

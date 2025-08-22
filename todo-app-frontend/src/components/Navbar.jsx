@@ -1,36 +1,58 @@
-function Navbar({ user, darkMode, setDarkMode, handleLogout }) {
-    return (
-        <nav className="w-full flex justify-between items-center px-6 py-3 bg-white dark:bg-gray-800 shadow-md">
-            {/* Logo o título */}
-            <h1 className="text-xl font-bold dark:text-white">
-                📋 Gestor de Tareas
-            </h1>
+import { Link, useNavigate } from "react-router-dom";
 
-            {/* Usuario + acciones */}
+function Navbar({ user, darkMode, setDarkMode, handleLogout }) {
+    const navigate = useNavigate();
+
+    const logout = () => {
+        // 🧹 limpiar almacenamiento
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+
+        handleLogout();
+        navigate("/"); // volver al login
+    };
+
+    return (
+        <nav className="flex justify-between items-center px-6 py-3 bg-gray-200 dark:bg-gray-800 dark:text-white">
             <div className="flex items-center gap-4">
-                <span className="text-gray-700 dark:text-gray-200">
-                    Hola, {user.username} 👋
+                <Link to="/" className="font-bold text-lg">
+                    📋 Task Manager
+                </Link>
+
+                {/* Menú visible solo si es admin */}
+                {user?.role === "admin" && (
+                    <Link
+                        to="/admin"
+                        className="px-3 py-1 rounded bg-purple-500 text-white hover:bg-purple-600"
+                    >
+                        Admin
+                    </Link>
+                )}
+            </div>
+
+            <div className="flex items-center gap-4">
+                <span className="hidden md:inline">
+                    👤 {user?.username || "Invitado"}
                 </span>
 
-                {/* Switch dark mode */}
+                {/* Botón Dark Mode */}
                 <button
                     onClick={() => setDarkMode(!darkMode)}
-                    className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-600"
+                    className="px-3 py-1 rounded bg-gray-400 dark:bg-gray-600 hover:opacity-80"
                 >
                     {darkMode ? "☀️ Claro" : "🌙 Oscuro"}
                 </button>
 
-                {/* Logout */}
+                {/* Botón logout */}
                 <button
-                    onClick={handleLogout}
-                    className="ox-3 py-1 rounded bg-red-500 text-white hover:bg-red-600"
+                    onClick={logout}
+                    className="px-3 py-1 rounded bg-red-500 text-white hover:bg-red-600"
                 >
-                    Cerrer sesión
+                    Cerrar sesión
                 </button>
-
             </div>
         </nav>
     );
 }
 
-export default Navbar
+export default Navbar;

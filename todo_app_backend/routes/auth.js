@@ -5,6 +5,17 @@ import pool from "../db.js";
 
 const router = express.Router();
 
+/**
+ * Función auxiliar para limpiar datos del usuario antes de enviarlos al frontend
+ */
+const formatUser = (user) => ({
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    role: user.role,
+    created_at: user.created_at
+});
+
 // --- Registrar usuario ---
 router.post("/register", async (req, res) => {
     try {
@@ -23,19 +34,23 @@ router.post("/register", async (req, res) => {
         // encriptar contraseña
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // 👇 aquí asignamos role = "user" por defecto
+        // por defecto asignamos role = "user"
         const newUser = await pool.query(
-            "INSERT INTO users (username, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id, username, email, role, created_at",
+            `INSERT INTO users (username, email, password, role) 
+             VALUES ($1, $2, $3, $4) 
+             RETURNING id, username, email, role, created_at`,
             [username, email, hashedPassword, "user"]
         );
 
+        const user = newUser.rows[0];
+
         const token = jwt.sign(
-            { id: newUser.rows[0].id, role: newUser.rows[0].role }, // token incluye role
+            { id: user.id, role: user.role },
             process.env.JWT_SECRET || "secret",
             { expiresIn: "7d" }
         );
 
-        res.json({ token, user: newUser.rows[0] });
+        res.json({ token, user: formatUser(user) });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -45,6 +60,10 @@ router.post("/register", async (req, res) => {
 router.post("/login", async (req, res) => {
     try {
         const { email, password } = req.body;
+
+        if (!email || !password) {
+            return res.status(400).json({ error: "Email y contraseña requeridos" });
+        }
 
         const result = await pool.query("SELECT * FROM users WHERE email=$1", [email]);
         if (result.rows.length === 0) {
@@ -59,13 +78,12 @@ router.post("/login", async (req, res) => {
         }
 
         const token = jwt.sign(
-            { id: user.id, role: user.role }, // 👈 incluimos role
+            { id: user.id, role: user.role },
             process.env.JWT_SECRET || "secret",
             { expiresIn: "7d" }
         );
 
-        delete user.password; // nunca devolver el password
-        res.json({ token, user });
+        res.json({ token, user: formatUser(user) });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -75,6 +93,10 @@ router.post("/login", async (req, res) => {
 router.put("/update-password", async (req, res) => {
     try {
         const { email, oldPassword, newPassword } = req.body;
+
+        if (!email || !oldPassword || !newPassword) {
+            return res.status(400).json({ error: "Todos los campos son requeridos" });
+        }
 
         const result = await pool.query("SELECT * FROM users WHERE email=$1", [email]);
         if (result.rows.length === 0) {
@@ -96,6 +118,5 @@ router.put("/update-password", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-
 
 export default router;
